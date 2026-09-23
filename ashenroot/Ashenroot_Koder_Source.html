@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>ASHENROOT — Koder Edition</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07080d;color:#fff;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;background:#090b13}
+#hud{position:fixed;top:12px;left:12px;right:12px;z-index:20;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;text-shadow:0 2px 5px #000}
+.panel{background:rgba(5,8,16,.72);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:9px 12px;backdrop-filter:blur(5px)}
+#title{font-weight:900;letter-spacing:3px;font-size:15px}.small{font-size:12px;opacity:.8}
+#menu{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 40%,#20334d 0,#0b111d 48%,#05070c 100%);padding:20px}
+.card{width:min(620px,94vw);padding:30px 24px;border-radius:22px;background:rgba(8,12,22,.9);border:1px solid #52627a;box-shadow:0 25px 80px #000;text-align:center}
+.logo{font-size:clamp(38px,9vw,76px);font-weight:1000;letter-spacing:8px;line-height:1;margin:0 0 8px}.sub{opacity:.75;margin-bottom:22px}
+#start{border:0;border-radius:14px;padding:15px 30px;font-weight:900;font-size:18px;color:#fff8e8;background:#a65b70;box-shadow:0 8px 30px #542d48;touch-action:manipulation}
+#start:active{transform:scale(.97)}
+#controls{position:fixed;inset:0;z-index:30;pointer-events:none}
+.btn{position:absolute;pointer-events:auto;width:72px;height:72px;border-radius:22px;border:1px solid rgba(255,255,255,.24);background:rgba(20,28,44,.68);color:white;font-size:27px;font-weight:900;display:grid;place-items:center;user-select:none;-webkit-user-select:none;touch-action:none;box-shadow:0 6px 20px #0008}
+.btn:active,.btn.on{background:rgba(166,91,112,.88);transform:scale(.94)}
+#left{left:18px;bottom:28px}#right{left:100px;bottom:28px}#jump{right:100px;bottom:112px}#attack{right:18px;bottom:28px}#dash{right:18px;bottom:112px}
+#hint{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);z-index:25;font-size:11px;color:#cbd4e6;background:#05080dcc;border-radius:9px;padding:5px 9px;pointer-events:none}
+#quest{position:fixed;left:12px;bottom:12px;z-index:20;max-width:min(310px,68vw);pointer-events:none}
+#quest .panel{padding:8px 11px;border-color:rgba(211,154,146,.38)}
+#questTitle{font-size:11px;font-weight:900;letter-spacing:1.5px;color:#ffd0a4;text-transform:uppercase}
+#questText{font-size:12px;line-height:1.3;color:#e8e0d7;margin-top:2px}
+#msg{position:fixed;left:50%;top:20%;transform:translateX(-50%);z-index:40;font-weight:900;font-size:22px;text-align:center;opacity:0;transition:opacity .15s;pointer-events:none;text-shadow:0 3px 12px #000}
+#cutscene{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:22px;background:linear-gradient(180deg,rgba(4,6,12,.72),rgba(11,7,14,.92));text-align:center}
+#cutscene.show{display:flex;animation:sceneIn .35s ease-out}
+#sceneCard{width:min(680px,94vw);padding:34px 24px 26px;border:1px solid rgba(255,210,164,.4);border-radius:20px;background:rgba(12,15,25,.9);box-shadow:0 20px 80px #000;position:relative;overflow:hidden}
+#sceneCard:before{content:"";position:absolute;inset:-40%;background:radial-gradient(circle,rgba(166,91,112,.2),transparent 55%);animation:sceneGlow 4s ease-in-out infinite}
+#sceneTitle,#sceneText,#sceneHint{position:relative}
+#sceneTitle{font-size:clamp(25px,6vw,48px);letter-spacing:4px;color:#ffe1bc;margin-bottom:14px;text-transform:uppercase}
+#sceneText{max-width:560px;margin:0 auto;color:#e9e2db;font-size:clamp(15px,2.7vw,20px);line-height:1.55;min-height:94px}
+#sceneHint{margin-top:22px;color:#c9a59c;font-size:12px;letter-spacing:1px}
+#sceneTap{position:relative;border:1px solid #bd7b7b;border-radius:10px;padding:10px 20px;margin-top:16px;color:#fff6e8;background:#6f3f52;font-weight:800;touch-action:manipulation}
+@keyframes sceneIn{from{opacity:0}to{opacity:1}}
+@keyframes sceneGlow{0%,100%{transform:scale(.9);opacity:.55}50%{transform:scale(1.08);opacity:1}}
+#err{display:none;position:fixed;inset:0;z-index:100;background:#12090b;color:#fff;padding:25px;font-family:monospace;white-space:pre-wrap;overflow:auto}
+@media (min-width:900px){.btn{width:62px;height:62px;opacity:.82}.btn:hover{opacity:1}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud"><div class="panel"><div id="title">ASHENROOT</div><div id="room" class="small">Forgotten Burrows</div></div><div class="panel"><div id="hp">❤❤❤❤❤❤</div><div id="coins" class="small">Shards: 0 / 12</div></div></div>
+<div id="quest"><div class="panel"><div id="questTitle">Mission I · Rootbound Oath</div><div id="questText">Gather 3 ash shards</div></div></div>
+<div id="msg"></div>
+<div id="cutscene" aria-live="polite"><div id="sceneCard"><div id="sceneTitle"></div><div id="sceneText"></div><div id="sceneHint">ENTER / SPACE TO CONTINUE</div><button id="sceneTap">CONTINUE</button></div></div>
+<div id="controls">
+ <div class="btn" id="left">◀</div><div class="btn" id="right">▶</div>
+ <div class="btn" id="jump">▲</div><div class="btn" id="dash">◆</div><div class="btn" id="attack">⚔</div>
+</div>
+<div id="hint">Keyboard: A/D or ←/→ · Space/↑ jump · K attack · L dash · P pause</div>
+<div id="menu"><div class="card">
+  <div class="logo">ASHENROOT</div><div class="sub">An original hand-inked 2D metroidvania made as one HTML file for Koder.</div>
+ <div style="font-size:44px;margin:12px 0 20px">◈ ✦ ◇</div>
+ <button id="start">START GAME</button>
+ <div class="small" style="margin-top:18px">Touch controls are built in. No external images, libraries, fonts, or downloads are required.</div>
+</div></div>
+<div id="err"></div>
+
+<script>
+(function(){
+'use strict';
+var canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+var menu=document.getElementById('menu'),start=document.getElementById('start'),msg=document.getElementById('msg'),err=document.getElementById('err');
+var cutscene=document.getElementById('cutscene'),sceneTitle=document.getElementById('sceneTitle'),sceneText=document.getElementById('sceneText'),sceneHint=document.getElementById('sceneHint'),sceneTap=document.getElementById('sceneTap');
+var hpEl=document.getElementById('hp'),coinEl=document.getElementById('coins'),roomEl=document.getElementById('room'),questTitleEl=document.getElementById('questTitle'),questTextEl=document.getElementById('questText');
+var W=0,H=0,DPR=1,started=false,paused=false,last=0,time=0,shake=0,scene=null,endingShown=false;
+var keys={left:false,right:false,jump:false,attack:false,dash:false};
+var worldW=7200,worldH=1900,cameraX=0,cameraY=0;
+var player={x:260,y:1320,w:38,h:58,vx:0,vy:0,dir:1,onGround:false,coyote:0,jumpLock:false,hp:6,maxHp:6,inv:0,attack:0,dash:0,dashTime:0,anim:0,spawnX:260,spawnY:1320,shards:0};
+var particles=[],enemies=[],shards=[],checkpoints=[],missionIndex=0;
+var missions=[
+ {title:'Mission I · Rootbound Oath',text:'Gather 3 ash shards',kind:'shards',target:3},
+ {title:'Mission II · The Moss Crown',text:'Defeat the Moss Demi-God',kind:'boss',target:'moss'},
+ {title:'Mission III · Bell of the Deep',text:'Defeat the Bell Demi-God',kind:'boss',target:'bell'}
+];
+var platforms=[
+{x:0,y:1450,w:1000,h:100},{x:1080,y:1450,w:750,h:100},{x:1930,y:1350,w:900,h:200},{x:2920,y:1450,w:1000,h:100},{x:4100,y:1320,w:850,h:230},{x:5050,y:1450,w:900,h:100},{x:6050,y:1250,w:1150,h:300},
+{x:380,y:1190,w:280,h:28},{x:820,y:1050,w:280,h:28},{x:1280,y:1180,w:300,h:28},{x:1540,y:940,w:260,h:28},{x:2120,y:1040,w:300,h:28},{x:2450,y:820,w:260,h:28},{x:3000,y:1100,w:300,h:28},{x:3450,y:900,w:300,h:28},{x:4300,y:1010,w:280,h:28},{x:4700,y:780,w:260,h:28},{x:5350,y:1080,w:280,h:28},{x:5700,y:870,w:250,h:28},{x:6300,y:980,w:330,h:28}
+];
+var rooms=[{x:0,n:'Forgotten Burrows'},{x:1900,n:'Mossgrave'},{x:3900,n:'Sunken Cathedral'},{x:6000,n:'Blackroot Depths'}];
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;canvas.width=Math.floor(W*DPR);canvas.height=Math.floor(H*DPR);canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(DPR,0,0,DPR,0,0)}
+window.addEventListener('resize',resize);resize();
+function resetWorld(){
+ enemies=[];shards=[];checkpoints=[];particles=[];missionIndex=0;
+ var es=[
+  [620,1390,'crawler'],[1180,1390,'crawler'],[1450,1120,'flyer'],[1660,885,'sporeling'],[2170,980,'warden'],[2600,1220,'demigod','moss'],[2700,1290,'crawler'],[3200,1390,'crawler'],[3550,840,'flyer'],[4350,1260,'warden'],[4770,730,'flyer'],[5480,1390,'crawler'],[5790,820,'warden'],[6000,1100,'demigod','bell'],[6500,1190,'crawler'],[6800,1190,'sporeling']
+ ];
+ for(var i=0;i<es.length;i++){
+  var type=es[i][2],boss=type==='demigod';
+  enemies.push({x:es[i][0],y:es[i][1],type:type,bossId:es[i][3]||'',w:boss?76:type==='warden'?48:38,h:boss?92:type==='flyer'?34:44,vx:0,vy:0,hp:boss?12:type==='warden'?4:type==='sporeling'?3:2,hit:0,dead:false,t:Math.random()*6});
+ }
+ var ss=[520,760,1160,1390,1650,2260,2580,3120,3470,4510,5510,6410];
+ for(i=0;i<ss.length;i++) shards.push({x:ss[i],y:platformTop(ss[i],1400)-45,r:10,got:false,p:Math.random()*6});
+ checkpoints=[{x:1760,y:1390,active:false},{x:3860,y:1390,active:false},{x:5990,y:1190,active:false}];
+}
+function platformTop(x,guess){var best=guess;for(var i=0;i<platforms.length;i++){var p=platforms[i];if(x>=p.x-5&&x<=p.x+p.w+5&&p.y<best)best=p.y}return best}
+resetWorld();
+function showMessage(t){msg.textContent=t;msg.style.opacity='1';clearTimeout(showMessage.t);showMessage.t=setTimeout(function(){msg.style.opacity='0'},1100)}
+function completeMission(){
+ if(missionIndex>=missions.length)return;
+ showMessage('Mission complete: '+missions[missionIndex].title);
+ missionIndex++;
+ if(missionIndex<missions.length)showMessage(missions[missionIndex].title);
+}
+function updateMission(){
+ var m=missions[missionIndex];
+ if(m&&m.kind==='shards'&&player.shards>=m.target)completeMission();
+ if(m&&m.kind==='boss'){
+  for(var i=0;i<enemies.length;i++)if(enemies[i].type==='demigod'&&enemies[i].bossId===m.target&&enemies[i].dead){completeMission();break}
+ }
+ if(m){questTitleEl.textContent=m.title;questTextEl.textContent=m.text}
+ else{questTitleEl.textContent='All missions complete';questTextEl.textContent='The roots remember your name'}
+}
+var scenePages={
+ intro:[
+  {title:'ASHENROOT',text:'Beneath the ash canopy, the old roots have started to whisper again.'},
+  {title:'THE PILGRIM',text:'Carry the ember needle into the buried kingdom. Gather the lost shards, then face what wakes below.'}
+ ],
+ moss:[
+  {title:'THE MOSS CROWN',text:'The first demi-god rises from the greenstone floor. Its crown is grown from the bones of forgotten gardeners.'}
+ ],
+ bell:[
+  {title:'BELL OF THE DEEP',text:'Far below the cathedral, a silent bell begins to move. The second demi-god has heard your footsteps.'}
+ ],
+ ending:[
+  {title:'THE ROOTS REMEMBER',text:'The ash falls quiet. Somewhere beneath the kingdom, a new seed opens its eyes.'},
+  {title:'ASHENROOT',text:'You cleared the buried kingdom. The story is only beginning.'}
+ ]
+};
+function renderScene(){
+ if(!scene)return;
+ var pages=scenePages[scene.kind],page=pages[scene.page];
+ sceneTitle.textContent=page.title;sceneText.textContent=page.text;
+ sceneHint.textContent=scene.page<pages.length-1?'ENTER / SPACE TO CONTINUE':'ENTER / SPACE TO RETURN';
+}
+function beginScene(kind){
+ scene={kind:kind,page:0,elapsed:0};renderScene();cutscene.classList.add('show');
+}
+function advanceScene(){
+ if(!scene)return;
+ var pages=scenePages[scene.kind];
+ if(scene.page<pages.length-1){scene.page++;scene.elapsed=0;renderScene()}
+ else{scene=null;cutscene.classList.remove('show');if(endingShown)showMessage('The end of this chapter') }
+}
+function updateScene(dt){
+ if(!scene)return;
+ scene.elapsed+=dt;
+ if(scene.elapsed>8)advanceScene();
+}
+function burst(x,y,n){for(var i=0;i<n;i++)particles.push({x:x,y:y,vx:(Math.random()-.5)*220,vy:(Math.random()-.7)*220,life:.45+Math.random()*.45,r:2+Math.random()*4})}
+function rectHit(a,b){return a.x<a.w+b.x&&a.x+a.w>b.x&&a.y<a.h+b.y&&a.y+a.h>b.y}
+function solidMove(o,dt){
+ o.onGround=false;o.x+=o.vx*dt;
+ for(var i=0;i<platforms.length;i++){var p=platforms[i];if(o.x<p.x+p.w&&o.x+o.w>p.x&&o.y<p.y+p.h&&o.y+o.h>p.y){if(o.vx>0)o.x=p.x-o.w;else if(o.vx<0)o.x=p.x+p.w;o.vx=0}}
+ o.y+=o.vy*dt;
+ for(i=0;i<platforms.length;i++){p=platforms[i];if(o.x<p.x+p.w&&o.x+o.w>p.x&&o.y<p.y+p.h&&o.y+o.h>p.y){if(o.vy>0){o.y=p.y-o.h;o.vy=0;o.onGround=true}else if(o.vy<0){o.y=p.y+p.h;o.vy=0}}}
+}
+function hurt(){if(player.inv>0)return;player.hp--;player.inv=1.1;player.vx=-player.dir*260;player.vy=-260;burst(player.x+20,player.y+25,12);if(player.hp<=0){showMessage('You fell in the roots');respawn()}}
+function respawn(){var cp=checkpoints[0];for(var i=0;i<checkpoints.length;i++)if(checkpoints[i].active)cp=checkpoints[i];player.x=cp?cp.x:player.spawnX;player.y=cp?cp.y-60:player.spawnY;player.vx=0;player.vy=0;player.hp=player.maxHp;player.inv=2;player.dashTime=0}
+function attack(){if(!started||paused||player.attack>0)return;player.attack=.28;burst(player.x+(player.dir>0?48:-8),player.y+30,4)}
+function jump(){if(!started||paused)return;if(player.onGround||player.coyote>0){player.vy=-640;player.onGround=false;player.coyote=0;burst(player.x+20,player.y+55,5)}}
+function dash(){if(!started||paused||player.dash>0||player.dashTime>0)return;player.dashTime=.18;player.dash=1.0;player.vy=0;player.vx=player.dir*900;burst(player.x+20,player.y+30,10)}
+function bindButton(id,prop,action){var b=document.getElementById(id);function down(e){e.preventDefault();b.classList.add('on');if(action)action();else keys[prop]=true;if(e.pointerId!=null&&b.setPointerCapture)try{b.setPointerCapture(e.pointerId)}catch(x){}}function up(e){e.preventDefault();b.classList.remove('on');if(!action)keys[prop]=false}['pointerdown','touchstart'].forEach(function(ev){b.addEventListener(ev,down,{passive:false})});['pointerup','pointercancel','lostpointercapture','touchend','touchcancel'].forEach(function(ev){b.addEventListener(ev,up,{passive:false})})}
+bindButton('left','left');bindButton('right','right');bindButton('jump',null,jump);bindButton('attack',null,attack);bindButton('dash',null,dash);
+sceneTap.addEventListener('click',function(e){e.preventDefault();advanceScene()});
+window.addEventListener('keydown',function(e){var k=e.key.toLowerCase();if(scene&&(k==='enter'||k===' '||k==='arrowdown')){e.preventDefault();advanceScene();return}if(['arrowleft','arrowright',' ','arrowup'].indexOf(e.key.toLowerCase())>=0)e.preventDefault();if(k==='a'||k==='arrowleft')keys.left=true;if(k==='d'||k==='arrowright')keys.right=true;if(k===' '||k==='w'||k==='arrowup')jump();if(k==='k')attack();if(k==='l')dash();if(k==='p'&&started&&!scene)paused=!paused;if(k==='enter'&&!started)startGame()});
+window.addEventListener('keyup',function(e){var k=e.key.toLowerCase();if(k==='a'||k==='arrowleft')keys.left=false;if(k==='d'||k==='arrowright')keys.right=false});
+start.addEventListener('click',startGame);start.addEventListener('touchend',function(e){e.preventDefault();startGame()},{passive:false});
+function startGame(){if(started)return;started=true;menu.style.display='none';showMessage('Explore the four regions');beginScene('intro');last=performance.now();requestAnimationFrame(loop)}
+function update(dt){
+ time+=dt;if(player.inv>0)player.inv-=dt;if(player.dash>0)player.dash-=dt;if(player.attack>0)player.attack-=dt;
+ if(player.dashTime>0){player.dashTime-=dt;player.vx=player.dir*900}else{var ax=0;if(keys.left)ax-=1;if(keys.right)ax+=1;if(ax){player.dir=ax;player.vx+=ax*2200*dt;player.vx=Math.max(-330,Math.min(330,player.vx))}else player.vx*=Math.pow(.0008,dt);player.vy+=1700*dt}
+ if(player.dashTime<=0)player.coyote=player.onGround?.09:Math.max(0,player.coyote-dt);
+ solidMove(player,dt);
+ if(player.y>worldH+200)respawn();
+  if(player.attack>0){var hitbox={x:player.dir>0?player.x+player.w-2:player.x-54,y:player.y+10,w:56,h:48};for(var i=0;i<enemies.length;i++){var e=enemies[i];if(!e.dead&&rectHit(hitbox,e)){e.hp--;e.hit=.18;e.vx=player.dir*(e.type==='demigod'?230:420);e.vy=e.type==='demigod'?-150:-230;shake=e.type==='demigod' ? .12 : 0;burst(e.x+e.w/2,e.y+e.h/2,e.type==='demigod'?12:8);if(e.hp<=0){e.dead=true;burst(e.x+e.w/2,e.y+e.h/2,e.type==='demigod'?36:18);if(e.type==='demigod')beginScene(e.bossId)}}}}
+ for(i=0;i<enemies.length;i++){e=enemies[i];if(e.dead)continue;e.t+=dt;if(e.hit>0)e.hit-=dt;
+   if(e.type==='flyer'){e.x+=Math.sin(e.t*2)*45*dt;e.y+=Math.cos(e.t*2.3)*30*dt}else{
+    var dx=player.x-e.x;
+    if(Math.abs(dx)<(e.type==='demigod'?620:380)){
+     var force=e.type==='demigod'?260:e.type==='sporeling'?620:520;
+     var speed=e.type==='demigod'?72:e.type==='sporeling'?155:100;
+     e.vx+=Math.sign(dx)*force*dt;e.vx=Math.max(-speed,Math.min(speed,e.vx));
+    }else e.vx*=.95;
+    if(e.type==='sporeling'&&e.onGround&&Math.sin(e.t*5)>.92)e.vy=-420;
+    e.vy+=e.type==='demigod'?1100:1500;solidMove(e,dt)
+   }
+  if(rectHit(player,e)&&player.inv<=0)hurt();
+ }
+  for(i=0;i<shards.length;i++){var s=shards[i];if(!s.got&&Math.hypot(player.x+player.w/2-s.x,player.y+player.h/2-s.y)<45){s.got=true;player.shards++;burst(s.x,s.y,16);showMessage('+1 Shard')}}
+ for(i=0;i<checkpoints.length;i++){var c=checkpoints[i];if(!c.active&&Math.abs(player.x-c.x)<45){c.active=true;player.spawnX=c.x;player.spawnY=c.y-60;showMessage('Checkpoint reached')}}
+  if(player.x>6900){if(!endingShown){endingShown=true;beginScene('ending')}player.x=6600}
+ cameraX+=(player.x-W*.5-cameraX)*Math.min(1,dt*5);cameraX=Math.max(0,Math.min(worldW-W,cameraX));
+ if(shake>0)shake-=dt;
+  updateMission();hpEl.textContent='❤'.repeat(player.hp)+'♡'.repeat(player.maxHp-player.hp);coinEl.textContent='Shards: '+player.shards+' / '+shards.length;var rr=rooms[0];for(i=0;i<rooms.length;i++)if(player.x>=rooms[i].x)rr=rooms[i];roomEl.textContent=rr.n;
+ for(i=particles.length-1;i>=0;i--){var q=particles[i];q.life-=dt;q.x+=q.vx*dt;q.y+=q.vy*dt;q.vy+=500*dt;if(q.life<=0)particles.splice(i,1)}
+}
+ function bg(){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#090c18');g.addColorStop(.5,'#101526');g.addColorStop(1,'#22191f');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // Slow parallax silhouettes make the cavern feel much deeper than the play plane.
+  for(var i=0;i<20;i++){
+   var x=(i*390-(cameraX*.12)%390)-90,h=160+(i%5)*58;
+   ctx.fillStyle=i%3===0?'rgba(44,39,62,.44)':'rgba(17,34,43,.52)';
+   ctx.beginPath();ctx.moveTo(x,H);ctx.lineTo(x+28,H-h*.55);ctx.lineTo(x+78,H-h);
+   ctx.lineTo(x+130,H-h*.38);ctx.lineTo(x+210,H);ctx.closePath();ctx.fill();
+  }
+  for(i=0;i<12;i++){
+   var mx=(i*241-(cameraX*.28)%241),my=120+(i*83)%Math.max(180,H*.62);
+   var pulse=.45+.35*Math.sin(time*1.6+i);
+   ctx.fillStyle='rgba(190,224,190,'+pulse+')';ctx.beginPath();ctx.arc(mx,my,1.5+(i%2),0,Math.PI*2);ctx.fill();
+  }
+ }
+function drawWorld(){
+ bg();ctx.save();var sx=shake>0?(Math.random()-.5)*8:0,sy=shake>0?(Math.random()-.5)*8:0;ctx.translate(-cameraX+sx,-cameraY+sy);
+  for(var i=0;i<platforms.length;i++){
+   var p=platforms[i];
+   ctx.fillStyle='#17202b';ctx.fillRect(p.x,p.y,p.w,p.h);
+   ctx.fillStyle='#476453';ctx.fillRect(p.x,p.y,p.w,7);
+   ctx.strokeStyle='rgba(199,160,126,.18)';ctx.lineWidth=2;
+   for(var x=p.x+14;x<p.x+p.w;x+=34){
+    ctx.beginPath();ctx.moveTo(x,p.y+9);ctx.lineTo(x+7,p.y+20);ctx.lineTo(x+3,p.y+34);ctx.stroke();
+   }
+   if(p.w>200){
+    ctx.strokeStyle='rgba(72,102,76,.8)';ctx.lineWidth=3;
+    for(x=p.x+42;x<p.x+p.w-20;x+=77){
+     var drip=14+((x/7)%19);ctx.beginPath();ctx.moveTo(x,p.y+5);
+     ctx.quadraticCurveTo(x-5,p.y+drip*.5,x+Math.sin(time*1.7+x)*5,p.y+drip);ctx.stroke();
+    }
+   }
+  }
+  for(i=0;i<checkpoints.length;i++){
+   var c=checkpoints[i],glow=5+Math.sin(time*3)*2;
+   ctx.strokeStyle=c.active?'#d39a92':'#52606b';ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(c.x,c.y);ctx.lineTo(c.x,c.y-55);ctx.stroke();
+   ctx.fillStyle=c.active?'rgba(255,188,154,.18)':'rgba(120,140,148,.1)';ctx.beginPath();ctx.arc(c.x,c.y-61,20+glow,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle=c.active?'#ffd0a4':'#667681';ctx.beginPath();ctx.arc(c.x,c.y-61,9,0,Math.PI*2);ctx.fill();
+  }
+  for(i=0;i<shards.length;i++){
+   var s=shards[i];if(s.got)continue;var bob=Math.sin(time*3+s.p)*6;
+   ctx.save();ctx.translate(s.x,s.y+bob);ctx.rotate(Math.PI/4+Math.sin(time*2+s.p)*.08);
+   ctx.fillStyle='#ffcf9b';ctx.shadowColor='#ff9d85';ctx.shadowBlur=20;ctx.fillRect(-8,-8,16,16);
+   ctx.fillStyle='#fff1c7';ctx.fillRect(-3,-8,4,16);ctx.restore();
+  }
+ for(i=0;i<enemies.length;i++){var e=enemies[i];if(e.dead)continue;drawEnemy(e)}
+  drawPlayer();for(i=0;i<particles.length;i++){var q=particles[i];ctx.globalAlpha=Math.max(0,q.life);ctx.fillStyle=q.warm?'#ffb18d':'#d4f1d1';ctx.beginPath();ctx.arc(q.x,q.y,q.r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(6,8,13,.17)';ctx.fillRect(cameraX-30,900,worldW+80,1000);ctx.restore();
+}
+ function drawPlayer(){
+  var p=player;ctx.save();ctx.translate(p.x+p.w/2,p.y+p.h/2);ctx.scale(p.dir,1);
+  if(p.inv>0&&Math.floor(time*18)%2===0)ctx.globalAlpha=.35;
+  var state=p.dashTime>0?'dash':p.attack>0?'attack':!p.onGround?(p.vy<0?'jump':'fall'):Math.abs(p.vx)>45?'run':'idle';
+  var bob=state==='idle'?Math.sin(time*5)*2:state==='run'?Math.sin(time*12)*3:0;
+  ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,32,25,7,0,0,Math.PI*2);ctx.fill();
+  ctx.translate(0,bob);
+  // Long animated mantle and ribbon make the character readable at small sizes.
+  var flap=Math.sin(time*9)*5+(state==='dash'?-9:0);
+  ctx.fillStyle='#a65b70';ctx.beginPath();ctx.moveTo(-10,-5);ctx.quadraticCurveTo(-28,3+flap,-47,flap*.4);
+  ctx.lineTo(-39,-8);ctx.quadraticCurveTo(-25,-5,-11,-15);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#d98c87';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-15,-3);ctx.quadraticCurveTo(-29,5+flap,-43,2+flap*.4);ctx.stroke();
+  // Tapered cloak and pale mask, drawn as an original silhouette.
+  ctx.fillStyle='#263441';ctx.beginPath();ctx.moveTo(-20,8);ctx.quadraticCurveTo(-18,-15,0,-22);ctx.quadraticCurveTo(18,-15,20,8);ctx.lineTo(13,29);ctx.quadraticCurveTo(0,35,-13,29);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#6d8c83';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-15,10);ctx.quadraticCurveTo(0,18,15,10);ctx.stroke();
+  ctx.fillStyle='#e9e5d2';ctx.beginPath();ctx.ellipse(0,-24,17,20,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#15202a';ctx.beginPath();ctx.moveTo(-11,-30);ctx.lineTo(-20,-43);ctx.lineTo(-6,-36);ctx.lineTo(0,-45);ctx.lineTo(6,-36);ctx.lineTo(20,-43);ctx.lineTo(11,-30);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#b45e61';ctx.beginPath();ctx.ellipse(-6,-23,3,5,0,0,Math.PI*2);ctx.ellipse(6,-23,3,5,0,0,Math.PI*2);ctx.fill();
+  var step=state==='run'?Math.sin(time*14)*7:0;ctx.strokeStyle='#d8d6c6';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-7,25);ctx.lineTo(-9-step,40);ctx.moveTo(7,25);ctx.lineTo(9+step,40);ctx.stroke();
+  // Needle-like weapon and a visible animated slash trail.
+  ctx.strokeStyle='#e4dcc7';ctx.lineWidth=5;ctx.beginPath();
+  if(state==='attack'){ctx.moveTo(9,-2);ctx.lineTo(51,-24);ctx.stroke();ctx.strokeStyle='#ffbf9c';ctx.lineWidth=3;ctx.beginPath();ctx.arc(27,-9,32,-1.02,.22);ctx.stroke()}
+  else{ctx.moveTo(11,4);ctx.lineTo(39,14);ctx.stroke()}
+  ctx.restore();
+}
+ function drawEnemy(e){
+  ctx.save();ctx.translate(e.x+e.w/2,e.y+e.h/2);
+  var sway=Math.sin(e.t*5)*2,blink=Math.sin(e.t*1.7)>0.94;
+  ctx.globalAlpha=e.hit>0?1:.96;ctx.fillStyle=e.hit>0?'#fff':e.type==='warden'?'#806077':e.type==='flyer'?'#477b78':'#86505c';
+  if(e.type==='demigod'){
+   ctx.translate(0,sway*.6);
+   var aura=e.bossId==='moss'?'#68816a':'#725d88',eye=e.bossId==='moss'?'#ffd39e':'#b9e6ff';
+   ctx.fillStyle=aura;ctx.shadowColor=aura;ctx.shadowBlur=18;
+   ctx.beginPath();ctx.ellipse(0,5,37,43,0,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+   ctx.fillStyle='#1a2028';ctx.beginPath();ctx.ellipse(0,-9,27,23,0,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle=eye;ctx.beginPath();ctx.arc(-10,-10,4,0,Math.PI*2);ctx.arc(10,-10,4,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle=aura;ctx.lineWidth=6;ctx.lineCap='round';
+   for(var arm=-2;arm<=2;arm++){ctx.beginPath();ctx.moveTo(arm*14,22);ctx.lineTo(arm*18+Math.sin(e.t*3+arm)*8,48);ctx.stroke()}
+   ctx.strokeStyle='#d9aa85';ctx.lineWidth=3;ctx.beginPath();
+   ctx.moveTo(-22,-26);ctx.lineTo(-31,-48);ctx.lineTo(-12,-34);ctx.moveTo(22,-26);ctx.lineTo(31,-48);ctx.lineTo(12,-34);ctx.stroke();
+   ctx.fillStyle='rgba(255,210,164,.14)';ctx.beginPath();ctx.arc(0,2,53+Math.sin(e.t*3)*4,0,Math.PI*2);ctx.fill();
+   ctx.fillStyle='#fff1c7';ctx.fillRect(-34,-63,68,5);ctx.fillStyle='#c56e6e';ctx.fillRect(-34,-63,68*(e.hp/12),5);
+  }else if(e.type==='flyer'){
+   ctx.translate(0,sway);ctx.save();ctx.rotate(Math.sin(e.t*4)*.12);
+   ctx.beginPath();ctx.ellipse(0,0,13,10,0,0,Math.PI*2);ctx.fill();
+   ctx.beginPath();ctx.moveTo(-7,-2);ctx.quadraticCurveTo(-30,-24,-27,5);ctx.quadraticCurveTo(-17,9,-7,3);ctx.fill();
+   ctx.beginPath();ctx.moveTo(7,-2);ctx.quadraticCurveTo(30,-24,27,5);ctx.quadraticCurveTo(17,9,7,3);ctx.fill();ctx.restore();
+   ctx.fillStyle='#f6c08b';ctx.beginPath();ctx.arc(-5,-1,2.5,0,Math.PI*2);ctx.arc(5,-1,2.5,0,Math.PI*2);ctx.fill();
+  }else if(e.type==='warden'){
+   ctx.translate(0,sway);ctx.fillRect(-20,-17,40,34);ctx.fillStyle='#c5a2a0';ctx.beginPath();ctx.arc(-7,-2,3,0,Math.PI*2);ctx.arc(7,-2,3,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#c18d81';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-13,-20);ctx.lineTo(-18,-34);ctx.moveTo(13,-20);ctx.lineTo(18,-34);ctx.stroke();
+   ctx.strokeStyle='#e2b19a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-13,15);ctx.lineTo(-7,22);ctx.moveTo(13,15);ctx.lineTo(7,22);ctx.stroke();
+   }else if(e.type==='sporeling'){
+    ctx.translate(0,sway);ctx.fillStyle='#71875d';ctx.beginPath();ctx.arc(0,5,18,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#b8c77e';ctx.beginPath();ctx.ellipse(0,-11,25,8,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#252536';ctx.fillRect(-9,-12,5,4);ctx.fillRect(4,-12,5,4);
+    ctx.strokeStyle='#9aae71';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,16);ctx.lineTo(-19,27+Math.sin(e.t*6)*3);ctx.moveTo(12,16);ctx.lineTo(19,27-Math.sin(e.t*6)*3);ctx.stroke();
+    ctx.fillStyle='rgba(190,218,132,.4)';ctx.beginPath();ctx.arc(0,-21,5+Math.sin(e.t*5)*2,0,Math.PI*2);ctx.fill();
+   }else{
+   ctx.translate(0,sway);ctx.beginPath();ctx.ellipse(0,7,22,15,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#b87576';ctx.lineWidth=3;
+   for(var leg=-1;leg<=1;leg++){ctx.beginPath();ctx.moveTo(leg*10,10);ctx.lineTo(leg*18,20+Math.sin(e.t*6+leg)*3);ctx.stroke()}
+   ctx.fillStyle='#171827';if(!blink){ctx.fillRect(-10,1,5,4);ctx.fillRect(5,1,5,4)}
+  }
+  ctx.restore();
+ }
+ function loop(now){if(!started)return;var dt=Math.min(.033,(now-last)/1000||0);last=now;if(scene)updateScene(dt);else if(!paused)update(dt);drawWorld();if(paused&&!scene){ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='900 42px system-ui';ctx.fillText('PAUSED',W/2,H/2)}requestAnimationFrame(loop)}
+window.addEventListener('error',function(e){err.style.display='block';err.textContent='ASHENROOT ERROR\n\n'+e.message+'\n'+(e.filename||'')+':'+(e.lineno||'')+'\n\nIf Koder shows this screen, send me the error text.'});
+// Draw immediately before Start, so a blank canvas can never be mistaken for a working file.
+drawWorld();
+})();
+</script>
+</body>
+</html>
